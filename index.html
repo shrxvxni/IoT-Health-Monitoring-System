@@ -3,290 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Health Monitoring System</title>
+  <title>IoT Health Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0a0f2c;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #00c8ff;
-      margin-bottom: 20px;
-    }
-
-    #loginForm, #dashboard {
-      width: 90%;
-      max-width: 900px;
-      background-color: #141e3c;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-      margin-bottom: 30px;
-    }
-
-    #loginForm img {
-      width: 100%;
-      max-width: 400px;
-      margin: 10px auto;
-      border-radius: 10px;
-      display: block;
-    }
-
-    input {
-      width: 95%;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-    }
-
-    button {
-      background-color: #00c8ff;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .chart-box {
-      margin: 25px 0;
-      padding: 20px;
-      background: #1c2341;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,255,255,0.1);
-    }
-
-    canvas {
-      width: 100% !important;
-      height: 300px !important;
-    }
-
-    #downloadBtn {
-      margin-top: 20px;
-      background-color: #00c8ff;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    @media (max-width: 600px) {
-      input, button {
-        width: 100%;
-      }
-    }
-  </style>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="script.js" defer></script>
 </head>
 <body>
+  <div class="overlay">
 
-  <div class="container">
-    <h1>💻 Health Monitoring System</h1>
-
-    <!-- 🔐 Login Form -->
-    <form id="loginForm">
-      <img src="https://cdn.openai.com/chat-assets/futuristic-hospital-iot.png" alt="Futuristic Hospital IoT" />
-      <input type="email" name="email" placeholder="Email" required />
-      <input type="password" name="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-
-    <!-- 📊 Dashboard -->
-    <div id="dashboard" style="display: none;">
-      <div class="chart-box">
-        <h2>🌡️ Temperature (°C): <span id="tempValue">--</span></h2>
-        <canvas id="tempChart"></canvas>
-      </div>
-      <div class="chart-box">
-        <h2>💧 Humidity (%): <span id="humValue">--</span></h2>
-        <canvas id="humChart"></canvas>
-      </div>
-      <div class="chart-box">
-        <h2>❤️ Pulse (ECG): <span id="pulseValue">--</span></h2>
-        <canvas id="pulseChart"></canvas>
-        <p id="pulseStatus" style="text-align: center; font-weight: bold; font-size: 18px; margin-top: 10px;">Checking pulse...</p>
-      </div>
-
-      <!-- ⬇️ CSV Export Button -->
-      <button id="downloadBtn">⬇️ Download CSV</button>
+    <!-- LOGIN SECTION -->
+    <div class="login-container" id="loginSection">
+      <h1>Login</h1>
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
     </div>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="dashboardSection" style="display: none;">
+      <h1>Health Monitoring Dashboard</h1>
+      <p id="clock"></p>
+
+      <div class="value-boxes">
+        <div>Temperature: <span id="temp">--</span> °C</div>
+        <div>Humidity: <span id="hum">--</span> %</div>
+        <div>Pulse: <span id="pulse">--</span> BPM</div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-box">
+          <h3>Temperature</h3>
+          <canvas id="tempChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Humidity</h3>
+          <canvas id="humChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Pulse</h3>
+          <canvas id="pulseChart"></canvas>
+        </div>
+      </div>
+
+      <button onclick="exportCSV()">Export CSV</button>
+    </div>
+
   </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-
-    import {
-      getDatabase,
-      ref,
-      onValue
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-
-    const firebaseConfig = {
-       apiKey: "AIzaSyCSJoXurbQSGyPhMYI4qL7VmuiQ_5sLQAA",
-    authDomain: "iot-health-monitoring-sy-ed011.firebaseapp.com",
-    databaseURL: "https://iot-health-monitoring-sy-ed011-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "iot-health-monitoring-sy-ed011",
-    storageBucket: "iot-health-monitoring-sy-ed011.firebasestorage.app",
-    messagingSenderId: "430526451837",
-    appId: "1:430526451837:web:f7c4b5ded1d18b2f396114"
-
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    const loginForm = document.getElementById("loginForm");
-    const dashboard = document.getElementById("dashboard");
-
-    loginForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const email = loginForm.email.value;
-      const password = loginForm.password.value;
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          loginForm.style.display = "none";
-          dashboard.style.display = "block";
-          startFirebaseListener();
-        })
-        .catch((err) => {
-          alert("Login Failed: " + err.message);
-        });
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginForm.style.display = "none";
-        dashboard.style.display = "block";
-        startFirebaseListener();
-      }
-    });
-
-    const maxPoints = 30;
-    const labels = [], tempData = [], humData = [], pulseData = [];
-
-    const tempChart = new Chart(document.getElementById("tempChart"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Temperature (°C)",
-          borderColor: "#ff6384",
-          backgroundColor: "rgba(255,99,132,0.2)",
-          data: tempData,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { animation: false }
-    });
-
-    const humChart = new Chart(document.getElementById("humChart"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Humidity (%)",
-          borderColor: "#36a2eb",
-          backgroundColor: "rgba(54,162,235,0.2)",
-          data: humData,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { animation: false }
-    });
-
-    const pulseChart = new Chart(document.getElementById("pulseChart"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Pulse (ECG)",
-          borderColor: "#4bc0c0",
-          data: pulseData,
-          fill: false,
-          tension: 0.2,
-          pointRadius: 0
-        }]
-      },
-      options: { animation: false }
-    });
-
-    function startFirebaseListener() {
-      const sensorRef = ref(db, "sensorData");
-
-      onValue(sensorRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        const time = new Date().toLocaleTimeString();
-
-        if (labels.length >= maxPoints) {
-          labels.shift(); tempData.shift(); humData.shift(); pulseData.shift();
-        }
-
-        labels.push(time);
-        tempData.push(data.temperature);
-        humData.push(data.humidity);
-        pulseData.push(data.pulse);
-
-        document.getElementById("tempValue").innerText = data.temperature;
-        document.getElementById("humValue").innerText = data.humidity;
-        document.getElementById("pulseValue").innerText = data.pulse;
-
-        const pulseStatus = document.getElementById("pulseStatus");
-        if (data.pulse >= 60 && data.pulse <= 100) {
-          pulseStatus.textContent = "🟢 Normal Pulse";
-          pulseStatus.style.color = "#00ff99";
-        } else if (data.pulse > 100) {
-          pulseStatus.textContent = "🔴 High Pulse – Alert";
-          pulseStatus.style.color = "#ff4c4c";
-        } else {
-          pulseStatus.textContent = "🟡 Low Pulse – Alert";
-          pulseStatus.style.color = "#ffcc00";
-        }
-
-        tempChart.update();
-        humChart.update();
-        pulseChart.update();
-      });
-    }
-
-    // ⬇️ CSV Export
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      let csv = "Time,Temperature (°C),Humidity (%),Pulse\n";
-      for (let i = 0; i < labels.length; i++) {
-        csv += `${labels[i]},${tempData[i]},${humData[i]},${pulseData[i]}\n`;
-      }
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "health_data.csv";
-      link.click();
-    });
-  </script>
 </body>
 </html>

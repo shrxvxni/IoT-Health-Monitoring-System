@@ -1,82 +1,77 @@
 body {
+  font-family: 'Poppins', sans-serif;
+  background-image: url('Screenshot 2025-06-28 084957.png');
+  background-size: cover;
+  background-position: center;
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #0a0f2c;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.container {
-  width: 90%;
-  max-width: 1200px;
-  padding: 20px;
+  color: white;
   text-align: center;
+  min-height: 100vh;
+  backdrop-filter: brightness(0.9);
 }
 
-h1 {
-  margin-bottom: 30px;
-  font-size: 2em;
-  color: #00c8ff;
+.overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+  min-height: 100vh;
+  padding: 80px 20px;
+}
+
+.login-container {
+  margin-top: 100px;
+  padding: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+input, button {
+  display: block;
+  margin: 15px auto;
+  padding: 12px;
+  width: 90%;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  outline: none;
+}
+
+button {
+  background: linear-gradient(45deg, #00f2fe, #4facfe);
+  cursor: pointer;
+  font-weight: bold;
+  color: #000;
+}
+
+.value-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  font-size: 1.3rem;
+  margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .charts {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
+  justify-content: center;
   gap: 30px;
+  margin: 40px 0;
 }
 
 .chart-box {
-  background-color: #1c2341;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.1);
   padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 0 20px rgba(0,255,255,0.2);
-  flex: 1 1 300px;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
 }
 
 canvas {
-  max-width: 100%;
-  height: 250px;
-}
-
-.footer {
-  margin-top: 40px;
-  color: #888;
-}
-
-/* Login styles */
-.login-container {
-  margin-top: 100px;
-  width: 90%;
-  max-width: 400px;
-  background-color: #1c2341;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 0 15px rgba(0,255,255,0.2);
-  text-align: center;
-}
-
-.login-container input {
-  width: 90%;
-  padding: 10px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 8px;
-}
-
-.login-container button {
-  padding: 10px 30px;
-  border: none;
-  border-radius: 8px;
-  background-color: #00c8ff;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-#loginStatus {
-  color: red;
-  margin-top: 10px;
+  width: 100% !important;
+  height: 200px !important;
 }
