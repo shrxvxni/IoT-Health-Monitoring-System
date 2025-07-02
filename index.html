@@ -25,11 +25,15 @@
     <div id="dashboardSection" style="display: none;">
       <h1>Health Monitoring Dashboard</h1>
       <p id="clock"></p>
+      <p id="pulse-alert"></p>
+
 
       <div class="value-boxes">
         <div>Temperature: <span id="temp">--</span> °C</div>
         <div>Humidity: <span id="hum">--</span> %</div>
         <div>Pulse: <span id="pulse">--</span> BPM</div>
+        <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
       </div>
 
       <div class="charts">

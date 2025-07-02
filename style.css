@@ -16,6 +16,7 @@ body {
   padding: 80px 20px;
 }
 
+/* LOGIN BOX */
 .login-container {
   margin-top: 100px;
   padding: 40px;
@@ -39,11 +40,21 @@ input, button {
   outline: none;
 }
 
+input {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
+}
+
 button {
   background: linear-gradient(45deg, #00f2fe, #4facfe);
   cursor: pointer;
   font-weight: bold;
   color: #000;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
 }
 
 .value-boxes {
@@ -74,4 +85,22 @@ button {
 canvas {
   width: 100% !important;
   height: 200px !important;
+}
+
+#pulse-alert {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* Blinking alert class */
+.blink {
+  animation: blinkAnim 1s steps(5, start) infinite;
+}
+
+@keyframes blinkAnim {
+  to {
+    visibility: hidden;
+  }
 }

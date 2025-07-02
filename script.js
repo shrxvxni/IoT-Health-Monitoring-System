@@ -1,111 +1,167 @@
-import { db } from "./firebase-config.js";
-import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+// script.js
+import { auth, db } from "./firebase-config.js";
+import {
+  signInWithEmailAndPassword,
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import {
+  ref,
+  onValue
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-// GLOBAL VARIABLES
 let tempChart, humChart, pulseChart;
-let tempData = [], humData = [], pulseData = [], labels = [];
+const labels = [], tempData = [], humData = [], pulseData = [];
+const maxPoints = 20;
 
-// LOGIN FUNCTION (Basic Placeholder)
+// ⏰ Clock
+setInterval(() => {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+// 🔐 Login Function
 window.login = function () {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  if (email && password) {
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("dashboardSection").style.display = "block";
-    updateClock();
-    startCharts();
-  } else {
-    alert("Enter valid credentials");
-  }
+  signInWithEmailAndPassword(auth, email, password)
+    .then(() => {
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("dashboardSection").style.display = "block";
+      startCharts();
+      readLiveData();
+    })
+    .catch((err) => {
+      alert("Login Failed: " + err.message);
+    });
 };
 
-// CLOCK DISPLAY
-function updateClock() {
-  setInterval(() => {
-    const now = new Date();
-    document.getElementById("clock").textContent = "🕒 " + now.toLocaleTimeString();
-  }, 1000);
-}
+// 📊 Chart Setup
+function startCharts() {
+  const ctx1 = document.getElementById("tempChart").getContext("2d");
+  const ctx2 = document.getElementById("humChart").getContext("2d");
+  const ctx3 = document.getElementById("pulseChart").getContext("2d");
 
-// CREATE CHART
-function createChart(id, label, color, tension = 0.4) {
-  return new Chart(document.getElementById(id), {
-    type: "line",
+  tempChart = new Chart(ctx1, {
+    type: 'line',
     data: {
-      labels: [],
+      labels,
       datasets: [{
-        label: label,
-        data: [],
-        borderColor: color,
-        backgroundColor: color + "33",
-        fill: true,
-        tension: tension,
+        label: "Temp (°C)",
+        data: tempData,
+        borderColor: "orange",
+        tension: 0.5,
+        fill: false,
+        pointRadius: 0
       }]
     },
-    options: {
-      animation: false,
-      responsive: true,
-      scales: {
-        y: { beginAtZero: false }
-      }
-    }
+    options: { responsive: true, animation: false }
+  });
+
+  humChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Humidity (%)",
+        data: humData,
+        borderColor: "blue",
+        tension: 0.5,
+        fill: false,
+        pointRadius: 0
+      }]
+    },
+    options: { responsive: true, animation: false }
+  });
+
+  pulseChart = new Chart(ctx3, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Pulse (BPM)",
+        data: pulseData,
+        borderColor: "red",
+        tension: 0.1, // ECG-like waveform
+        fill: false,
+        pointRadius: 0
+      }]
+    },
+    options: { responsive: true, animation: false }
   });
 }
 
-// UPDATE CHART
-function updateChart(chart, value, label, dataArray) {
-  chart.data.labels.push(label);
-  chart.data.datasets[0].data.push(value);
-  dataArray.push(value);
-
-  if (chart.data.labels.length > 30) {
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-    dataArray.shift();
-  }
-
-  chart.update();
-}
-
-// START READING FROM FIREBASE
-function startCharts() {
-  tempChart = createChart("tempChart", "Temperature (°C)", "#00f2fe");
-  humChart = createChart("humChart", "Humidity (%)", "#4facfe");
-  pulseChart = createChart("pulseChart", "Pulse", "#43e97b", 0);
-
-  const sensorRef = ref(db, "sensorData");
+// 📥 Realtime Firebase Listener
+function readLiveData() {
+  const sensorRef = ref(db, 'sensorData');
 
   onValue(sensorRef, (snapshot) => {
     const data = snapshot.val();
     const now = new Date().toLocaleTimeString();
 
-    const temp = parseFloat(data.temperature);
-    const hum = parseFloat(data.humidity);
-    const pulse = parseInt(data.pulse);
+    const temp = Number(data?.temperature) || 0;
+    const hum = Number(data?.humidity) || 0;
+    const pulse = Number(data?.pulse) || 0;
 
-    document.getElementById("temp").textContent = temp.toFixed(1);
-    document.getElementById("hum").textContent = hum.toFixed(1);
+    // Display values
+    document.getElementById("temp").textContent = temp;
+    document.getElementById("hum").textContent = hum;
     document.getElementById("pulse").textContent = pulse;
 
-    updateChart(tempChart, temp, now, tempData);
-    updateChart(humChart, hum, now, humData);
-    updateChart(pulseChart, pulse / 200, now, pulseData);  // scale to waveform height
+    // Alert handling
+    const alertBox = document.getElementById("pulse-alert");
+    if (pulse > 0 && pulse < 60) {
+      alertBox.textContent = `⚠️ Low pulse detected: ${pulse} BPM`;
+      alertBox.style.color = "orange";
+    } else if (pulse > 100) {
+      alertBox.textContent = `⚠️ High pulse detected: ${pulse} BPM`;
+      alertBox.style.color = "red";
+    } else {
+      alertBox.textContent = "";
+    }
+
+    // Skip chart update if hardware is disconnected
+    if (temp === 0 && hum === 0 && pulse === 0) return;
+
+    // Update chart
+    if (labels.length >= maxPoints) {
+      labels.shift(); tempData.shift(); humData.shift(); pulseData.shift();
+    }
+
     labels.push(now);
-    if (labels.length > 30) labels.shift();
+    tempData.push(temp);
+    humData.push(hum);
+    pulseData.push(pulse);
+
+    tempChart.update();
+    humChart.update();
+    pulseChart.update();
   });
 }
 
-// CSV EXPORT
+// 📤 CSV Export
 window.exportCSV = function () {
   let csv = "Time,Temperature,Humidity,Pulse\n";
   for (let i = 0; i < labels.length; i++) {
-    csv += `${labels[i]},${tempData[i]?.toFixed(2)},${humData[i]?.toFixed(2)},${pulseData[i]}\n`;
+    csv += `${labels[i]},${tempData[i]},${humData[i]},${pulseData[i]}\n`;
   }
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([csv], { type: "text/csv" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "health_data.csv";
+  link.download = "iot_health_data.csv";
   link.click();
 };
+// ✅ Pulse Alert System
+const alertBox = document.getElementById("pulse-alert");
+
+if (pulse > 0 && pulse < 60) {
+  alertBox.textContent = `⚠️ Low Pulse Detected: ${pulse} BPM`;
+  alertBox.style.color = "orange";
+  alertBox.classList.add("blink");
+} else if (pulse > 100) {
+  alertBox.textContent = `⚠️ High Pulse Detected: ${pulse} BPM`;
+  alertBox.style.color = "red";
+  alertBox.classList.add("blink");
+} else {
+  alertBox.textContent = "";
+  alertBox.classList.remove("blink");
+}
